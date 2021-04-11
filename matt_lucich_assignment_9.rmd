@@ -1,0 +1,75 @@
+---
+title: "Assignment Week 9 - Web APIs"
+author: "Matthew Lucich"
+date: "4/10/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = TRUE, results = TRUE, fig.show = "show", message = FALSE)
+```
+
+```{r load-packages}
+library(tidyverse)
+library(jsonlite)
+```
+
+
+## Overivew
+
+The objective is to create an interface with one of the NY Times APIs, read in the JSON response, and convert it into a data frame. I chose to call the archive API, specifically querying articles from April 1921, then filtering the results further for articles from April 10th 1921. Finally, to make the output slightly easier to read, I glued the headline and abstract to gather.
+
+
+## Calling the NY Times API
+
+```{r call-api}
+
+NYT_KEY <- rstudioapi::askForPassword("Enter API Key")
+
+# Call API for articles from April 1921, flatten into data frame
+nineteentwentyone <- fromJSON(str_glue("https://api.nytimes.com/svc/archive/v1/1921/4.json?api-key={NYT_KEY}"), flatten = TRUE) %>% data.frame()
+
+glimpse(nineteentwentyone)
+
+```
+
+## Cleaning up and viewing the data
+
+```{r clean-up-filter}
+
+# Select only a subset of useful columns
+nyt_1921_april <- nineteentwentyone %>% select(c("response.docs.abstract",
+                               "response.docs.web_url",
+                               "response.docs.headline.main",
+                               "response.docs.pub_date"))
+
+# Rename columns to be easier to read
+nyt_1921_april <- nyt_1921_april %>% rename(abstract = "response.docs.abstract",
+                                           url = "response.docs.web_url",
+                                           headline = "response.docs.headline.main",
+                                           pub_date = "response.docs.pub_date")
+
+# Glue headline and abstract to make it easier to read
+headline_abs_apr <- nyt_1921_april %>% str_glue_data("{rownames(.)} Headline: {headline} //// Abstract: {abstract}")
+
+head(headline_abs_apr)
+
+# Filter for articles from April 10th 1921
+nyt_1921_april_10 <- nyt_1921_april %>% filter(pub_date == "1921-04-10T05:00:00+0000")
+
+# Glue headline and abstract to make it easier to read
+headline_abs_apr10 <- nyt_1921_april_10 %>% str_glue_data("{rownames(.)} Headline: {headline} //// Abstract: {abstract}")
+
+head(headline_abs_apr10, 15)
+
+```
+
+## Conclusion
+
+While the names are different we can see the newsworthy events of a hundred years ago are not so different from the events we read about today. There was wage issues, land claim disputes, white-collar crime, and sports updates. Overall, finding out about this API is inspiring as this has the potential to streamline research projects. The archive API is also a great compliment to the [NY Times TimesMachine](https://timesmachine.nytimes.com/browser) which provides images of the actual printed versions of past papers, a feature that is the main reason for keeping my NY Times subscription at the moment.
+
+
+## References
+
+Jonathan D. Fitzgerald (2018) [Working with The New York Times API in R](https://www.storybench.org/working-with-the-new-york-times-api-in-r/)
+
